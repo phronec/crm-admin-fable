@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SESSION_COOKIE_OPTIONS } from "@/db/session-cookie";
 
 const SIGN_IN = "/sign-in";
 
@@ -16,6 +17,7 @@ export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();

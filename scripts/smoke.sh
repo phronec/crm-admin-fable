@@ -42,6 +42,7 @@ start_db() {
 sleep 4
 ADMIN="$(node "$HERE/standin-supabase.mjs" cookie admin)"
 MEMBER="$(node "$HERE/standin-supabase.mjs" cookie member)"
+CUSTOMER_ADMIN="$(node "$HERE/standin-supabase.mjs" cookie admin customer)"
 SIGNO=10000000-0000-4000-8000-000000000001
 PAGES=(/ /tenants /tenants/$SIGNO /payments /tokens /activity)
 
@@ -77,6 +78,33 @@ check "activity filter by name and day" contains "/activity?name=site.published"
 check "a filter value that is not allowed is ignored" contains "/payments?status=paid%27%20or%201=1" "Rows 1 to 5 of 5"
 check "the secret key is not in any page" absent / "sb_secret_test"
 
+echo "== a customer-app session cookie is not a session here"
+curl -s "$DB/__reset" >/dev/null
+for p in "${PAGES[@]}" /no-access; do
+  check "$p treats the default-named cookie as signed out" bash -c "curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H 'Cookie: $CUSTOMER_ADMIN' $APP$p | grep -q '^307 .*/sign-in$'"
+done
+check "zero secret-key requests reached the stand-in" bash -c "
+  curl -s $DB/__log | python3 -c 'import json,sys; sys.exit(1 if any(e[\"key\"] == \"secret\" for e in json.load(sys.stdin)) else 0)'"
+
+echo "== sign-in and sign-out use only the admin cookie"
+signin_headers=$(curl -s -o /dev/null -D - -H "Origin: $APP" \
+  --form-string "$(curl -s $APP/sign-in | grep -o 'name="\$ACTION_ID_[A-Za-z0-9]*"' | head -1 | sed 's/name="//;s/"//')=" \
+  --form-string email=admin@example.com --form-string password=correct-password $APP/sign-in | tr -d '\r')
+check "sign-in redirects to /" bash -c "echo '$signin_headers' | grep -qi '^location: /\$'"
+check "sign-in sets clevia-admin-auth and no other cookie" bash -c "
+  [ \"\$(echo '$signin_headers' | grep -i '^set-cookie' | grep -vc '^[Ss]et-[Cc]ookie: clevia-admin-auth')\" = 0 ] && echo '$signin_headers' | grep -qi '^set-cookie: clevia-admin-auth'"
+check "that cookie is HttpOnly, SameSite=Lax, Secure, host-only" bash -c "
+  line=\$(echo '$signin_headers' | grep -i '^set-cookie: clevia-admin-auth' | head -1)
+  echo \"\$line\" | grep -qi 'httponly' && echo \"\$line\" | grep -qi 'samesite=lax' && echo \"\$line\" | grep -qi 'secure' && ! echo \"\$line\" | grep -qi 'domain='"
+SESSION=$(echo "$signin_headers" | grep -i '^set-cookie: clevia-admin-auth' | head -1 | sed 's/^[^:]*: //; s/;.*//')
+COOKIE="$SESSION"
+check "admin pages work with the cookie sign-in set" contains / "Companies in total 58"
+signout_headers=$(curl -s -o /dev/null -D - -H "Cookie: $SESSION" -H "Origin: $APP" \
+  --form-string "$(curl -s -H "Cookie: $SESSION" $APP/ | grep -o 'name="\$ACTION_ID_[A-Za-z0-9]*"' | head -1 | sed 's/name="//;s/"//')=" $APP/ | tr -d '\r')
+check "sign-out clears clevia-admin-auth" bash -c "echo '$signout_headers' | grep -i '^set-cookie: clevia-admin-auth=;' | grep -qi 'max-age=0'"
+check "sign-out redirects to /sign-in" bash -c "echo '$signout_headers' | grep -qi '^location: /sign-in'"
+
+COOKIE="$ADMIN"
 echo "== admin, new tables missing (platform_admins present)"
 start_db partial
 for p in /payments /tokens /activity; do

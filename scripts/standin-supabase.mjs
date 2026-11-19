@@ -4,7 +4,8 @@
 // the app asks the right questions and uses the right key.
 //
 //   node scripts/standin-supabase.mjs serve [full|partial|empty]   (PORT, default 54321)
-//   node scripts/standin-supabase.mjs cookie admin|member           prints a session cookie
+//   node scripts/standin-supabase.mjs cookie admin|member [customer]  prints a session cookie;
+//        "customer" gives it the library default name the customer app uses
 //
 // Scenarios:
 //   full     every table exists and has data
@@ -17,7 +18,8 @@ import { createServer } from "node:http";
 const PORT = Number(process.env.PORT ?? 54321);
 const SECRET = "sb_secret_test";
 const PUBLISHABLE = "sb_publishable_test";
-const COOKIE_NAME = "sb-127-auth-token"; // @supabase/ssr: "sb-" + first label of the host + "-auth-token"
+const ADMIN_COOKIE_NAME = "clevia-admin-auth";
+const CUSTOMER_COOKIE_NAME = "sb-127-auth-token"; // @supabase/ssr default: "sb-" + first label of the host + "-auth-token"
 
 const USERS = {
   admin: { id: "00000000-0000-4000-8000-0000000000a1", email: "admin@example.com" },
@@ -300,13 +302,13 @@ function serve(scenario) {
   }).listen(PORT, "127.0.0.1", () => console.log(`stand-in Supabase (${scenario}) on http://127.0.0.1:${PORT}`));
 }
 
-const [command, argument] = process.argv.slice(2);
+const [command, argument, variant] = process.argv.slice(2);
 if (command === "serve") serve(argument ?? "full");
 else if (command === "cookie") {
   const user = USERS[argument];
   if (!user) throw new Error("who? admin or member");
   // Same shape @supabase/ssr stores: "base64-" and the session as base64url JSON.
-  console.log(`${COOKIE_NAME}=base64-${b64url(JSON.stringify(makeSession(user)))}`);
+  console.log(`${variant === "customer" ? CUSTOMER_COOKIE_NAME : ADMIN_COOKIE_NAME}=base64-${b64url(JSON.stringify(makeSession(user)))}`);
 } else {
   console.error("usage: standin-supabase.mjs serve [full|partial|empty] | cookie admin|member");
   process.exit(1);

@@ -145,7 +145,11 @@ asks the right questions and uses the right key.
 5. Apply the platform migration from `crm-fable` and add the first admin (see
    above).
 
-Cookies: on `admin.clevia.cz` the customer app's session cookie
-(`domain=.clevia.cz`) is also sent to this app, so someone already signed in
-there is signed in here too. They still need a row in `platform_admins`. Signing
-out here clears only the cookie this app set.
+Session cookie: this app's session cookie is called `clevia-admin-auth`, not
+the library default `sb-<project>-auth-token`. The customer app sets the default
+one on `.clevia.cz`, which the browser also sends to `admin.clevia.cz`; under a
+different name that cookie is simply not a session here, so a customer who is
+signed in on `clevia.cz` is signed out of this app, and the two cannot clash.
+The admin cookie is host-only, HttpOnly, SameSite=Lax and Secure in production.
+It is set in `src/db/session-cookie.ts`, which both the server client and the
+proxy use. Signing out clears it.

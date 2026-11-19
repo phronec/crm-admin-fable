@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { SESSION_COOKIE_OPTIONS } from "./session-cookie";
 
 /** The project address and the publishable key, which are safe to expose. */
 export function publicEnv() {
@@ -25,6 +26,7 @@ export async function createSessionClient() {
   const { url, key } = publicEnv();
 
   return createServerClient(url, key, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return cookieStore.getAll();
