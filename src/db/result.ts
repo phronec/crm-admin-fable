@@ -71,9 +71,15 @@ export async function scan<T>(
   return { rows, truncated: true };
 }
 
-/** The server-side count of a `{ count: "exact", head: true }` query. */
-export async function countOf(
-  query: PromiseLike<{ count: number | null; error: Failure | null }>,
-): Promise<number> {
-  return check(await query).count ?? 0;
+/**
+ * The server-side count of a `{ count: "exact" }` query: no rows are
+ * transferred (`limit(0)`). It is deliberately not a HEAD request: for a
+ * missing table PostgREST answers HEAD with an empty 404, which the client
+ * library reads as "no rows, no error", so a missing table would show up as
+ * a count of zero instead of "not available yet".
+ */
+export async function countOf(query: {
+  limit(count: number): PromiseLike<{ count: number | null; error: Failure | null }>;
+}): Promise<number> {
+  return check(await query.limit(0)).count ?? 0;
 }

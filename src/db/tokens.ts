@@ -17,7 +17,7 @@ export async function loadTokenTotals(admin: Admin, now: Date): Promise<Loaded<T
   return loaded(async () => {
     const since30 = daysBefore(now, 30).toISOString();
     const [entries, window] = await Promise.all([
-      countOf(admin.db.from("token_ledger").select("id", { count: "exact", head: true })),
+      countOf(admin.db.from("token_ledger").select("id", { count: "exact" })),
       scan<LedgerRow>((from, to) =>
         admin.db
           .from("token_ledger")

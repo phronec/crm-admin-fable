@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 import { redactSecrets } from "@/core/errors";
 import { createSessionClient, publicEnv } from "./supabase";
@@ -65,6 +66,9 @@ function createAdmin(userId: string, email: string | null, db: AdminDb): Admin {
  * admin". Checked once per request however many components ask.
  */
 export const getAdminState = cache(async (): Promise<AdminState> => {
+  // The auth library reads the clock, which Next.js refuses while it renders a
+  // page ahead of time. Declaring the page request-time first keeps that out.
+  await connection();
   const session = await createSessionClient();
   const { data, error } = await session.auth.getUser();
   if (error || !data.user) return { kind: "signed-out" };

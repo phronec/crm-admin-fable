@@ -60,14 +60,14 @@ export interface TenantFacts {
 export async function loadTenantFacts(admin: Admin, id: string): Promise<TenantFacts> {
   const { db } = admin;
   const [deals, listings, activeMembers, site] = await Promise.all([
-    countOf(db.from("deals").select("id", { count: "exact", head: true }).eq("organization_id", id)),
+    countOf(db.from("deals").select("id", { count: "exact" }).eq("organization_id", id)),
     countOf(
-      db.from("listings").select("id", { count: "exact", head: true }).eq("organization_id", id),
+      db.from("listings").select("id", { count: "exact" }).eq("organization_id", id),
     ),
     countOf(
       db
         .from("memberships")
-        .select("id", { count: "exact", head: true })
+        .select("id", { count: "exact" })
         .eq("organization_id", id)
         .eq("status", "active"),
     ),

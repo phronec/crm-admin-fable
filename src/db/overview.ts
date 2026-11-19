@@ -34,7 +34,7 @@ export async function loadOverview(admin: Admin, now: Date): Promise<Overview> {
   const since7 = daysBefore(now, 7).toISOString();
   const since30 = daysBefore(now, 30).toISOString();
 
-  const organizations = () => db.from("organizations").select("id", { count: "exact", head: true });
+  const organizations = () => db.from("organizations").select("id", { count: "exact" });
 
   const [companies, active, subscriptions, payments, tokens, events] = await Promise.all([
     loaded(async () => {
@@ -73,7 +73,7 @@ export async function loadOverview(admin: Admin, now: Date): Promise<Overview> {
             count: await countOf(
               db
                 .from("subscriptions")
-                .select("organization_id", { count: "exact", head: true })
+                .select("organization_id", { count: "exact" })
                 .eq("status", status),
             ),
           })),
@@ -84,7 +84,7 @@ export async function loadOverview(admin: Admin, now: Date): Promise<Overview> {
             count: await countOf(
               db
                 .from("subscriptions")
-                .select("organization_id", { count: "exact", head: true })
+                .select("organization_id", { count: "exact" })
                 .eq("plan_id", plan.id),
             ),
           })),
@@ -124,7 +124,7 @@ export async function loadOverview(admin: Admin, now: Date): Promise<Overview> {
           count: await countOf(
             db
               .from("events")
-              .select("id", { count: "exact", head: true })
+              .select("id", { count: "exact" })
               .eq("name", name)
               .gte("created_at", since30),
           ),

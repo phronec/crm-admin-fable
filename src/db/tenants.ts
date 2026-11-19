@@ -105,7 +105,7 @@ async function loadOrganizationPage(
   const recentIds = recent.ok ? recent.data : [];
   if (!recent.ok) unavailable.push("last active sort");
 
-  let count = admin.db.from("organizations").select("id", { count: "exact", head: true });
+  let count = admin.db.from("organizations").select("id", { count: "exact" });
   if (search) count = count.or(`name.ilike.*${search}*,slug.ilike.*${search}*`);
   const total = await countOf(count);
 
